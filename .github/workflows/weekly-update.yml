@@ -1,0 +1,43 @@
+name: Weekly cheongyak update
+
+on:
+  schedule:
+    # 매주 월요일 00:00 UTC = 월요일 09:00 KST
+    - cron: "0 0 * * 1"
+  workflow_dispatch: {}   # 수동 실행 버튼
+
+permissions:
+  contents: write
+
+concurrency:
+  group: weekly-update
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build index.html from 청약홈 API
+        env:
+          SERVICE_KEY: ${{ secrets.SERVICE_KEY }}
+        run: python scripts/build_site.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- index.html; then
+            echo "변경 없음 — 커밗 생럵"
+          else
+            git add index.html
+            git commit -m "chore: 주간 청약 데이터 자돏 갱신 ($(date -u +%Y-%m-%d))"
+            git push
+          fi
