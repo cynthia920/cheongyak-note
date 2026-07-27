@@ -20,6 +20,7 @@ import html
 import datetime
 import urllib.parse
 import urllib.request
+import urllib.error
 
 API_URL = "https://api.odcloud.kr/api/ApplyhomeInfoDetailSvc/v1/getAPTLttotPblancDetail"
 APPLY_URL = "https://www.applyhome.co.kr/ai/aia/selectAPTLttotPblancListView.do"
@@ -49,25 +50,57 @@ def parse_date(s):
     return None
 
 
-def fetch_all(service_key):
-    """API를 페이지 단위로 모두 받아 data 배열을 합쳐 반환."""
-    rows = []
-    for page in range(1, MAX_PAGES + 1):
-        params = {
-            "serviceKey": service_key,
-            "page": page,
-            "perPage": PER_PAGE,
-        }
-        url = API_URL + "?" + urllib.parse.urlencode(params)
-        req = urllib.request.Request(url, headers={"User-Agent": "cheongyak-note/1.0"})
+def _request(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "cheongyak-note/1.0"})
+    try:
         with urllib.request.urlopen(req, timeout=60) as resp:
-            payload = json.loads(resp.read().decode("utf-8"))
+            return resp.getcode(), resp.read().decode("utf-8", "replace")
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", "replace") if hasattr(e, "read") else ""
+        return e.code, body
+
+
+def _url_encoded(service_key, page):
+    return API_URL + "?" + urllib.parse.urlencode(
+        {"serviceKey": service_key, "page": page, "perPage": PER_PAGE}
+    )
+
+
+def _url_raw(service_key, page):
+    # 이미 URL 인코딩된 키(Encoding 키)를 그대로 붙이는 방식
+    return "{}?serviceKey={}&page={}&perPage={}".format(API_URL, service_key, page, PER_PAGE)
+
+
+def fetch_all(service_key):
+    """API를 페이지 단위로 ꪨ두 받아 data 배열을 합쳐 반환.
+    Decoding 키(urlencode)와 Encoding 키(raw) 두 방식을 자동 시도한다."""
+    for label, build in (("encoded", _url_encoded), ("raw", _url_raw)):
+        status, body = _request(build(service_key, 1))
+        try:
+            payload = json.loads(body)
+        except ValueError:
+            print("[{}] JSON 파싱 실패 (HTTP {}): {}".format(label, status, body[:250]))
+            continue
         data = payload.get("data") or []
-        rows.extend(data)
-        current = payload.get("currentCount", len(data))
-        if current < PER_PAGE:
-            break
-    return rows
+        if not data:
+            print("[{}] 데이터 0건 (HTTP {}). 응답요약: {}".format(label, status, body[:250]))
+            continue
+        # 성공한 방식으로 전체 페이지 수집
+        print("사용한 serviceKey 전달방식:", label)
+        rows = list(data)
+        if payload.get("currentCount", len(data)) >= PER_PAGE:
+            for page in range(2, MAX_PAGES + 1):
+                _s, b = _request(build(service_key, page))
+                try:
+                    p = json.loads(b)
+                except ValueError:
+                    break
+                d = p.get("data") or []
+                rows.extend(d)
+                if p.get("currentCount", len(d)) < PER_PAGE:
+                    break
+        return rows
+    return []
 
 
 def md(d):
@@ -303,7 +336,7 @@ function openModal(i){
     <div class="m-kv"><span class="k">청약접수</span><span class="v">${d.period}</span></div>
     <div class="m-kv"><span class="k">당첨자발표</span><span class="v">${d.announce}</span></div>
     <div class="m-kv"><span class="k">공급 세대</span><span class="v">${d.units}세대</span></div>
-    <div class="note">주택형별 공급금액·세대수 등 상세 내용은 청약홈 입주자모집공고 원문에서 확인하세요.</div>
+    <div class="note">주탙형별 공급금액·세대수 등 상세 내용은 청약홈 입주자모집공고 원문에서 확인하세요.</div>
     <div class="m-footer"><a class="m-link" href="${d.link}" target="_blank" rel="noopener">청약홈에서 확인 →</a></div>`;
   document.getElementById("overlay").classList.add("on");
   document.body.style.overflow="hidden";
