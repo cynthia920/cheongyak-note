@@ -5,6 +5,7 @@
 
 한국부동산원_청약홈 분양정보 조회 서비스(odcloud)에서 APT 분양정보를 받아
 '오늘' 기준 진행중/오늘마감/접수예정 공고만 골라 index.html을 재생성한다.
+각 공고의 분양가(분양최고금액) 범위도 주택형별 상세에서 받아 함께 표시한다.
 
 환경변수:
   SERVICE_KEY : 공공데이터포털(data.go.kr)에서 발급한 서비스 키(Decoding 키 권장)
@@ -22,7 +23,9 @@ import urllib.parse
 import urllib.request
 import urllib.error
 
-API_URL = "https://api.odcloud.kr/api/ApplyhomeInfoDetailSvc/v1/getAPTLttotPblancDetail"
+API_BASE = "https://api.odcloud.kr/api/ApplyhomeInfoDetailSvc/v1/"
+DETAIL_OP = "getAPTLttotPblancDetail"   # 공고 단위 분양정보
+MDL_OP = "getAPTLttotPblancMdl"         # 주택형별 상세(분양금액)
 APPLY_URL = "https://www.applyhome.co.kr/ai/aia/selectAPTLttotPblancListView.do"
 
 # '오늘' 이후 며칠까지의 '접수예정' 공고를 포함할지
@@ -60,47 +63,103 @@ def _request(url):
         return e.code, body
 
 
-def _url_encoded(service_key, page):
-    return API_URL + "?" + urllib.parse.urlencode(
-        {"serviceKey": service_key, "page": page, "perPage": PER_PAGE}
-    )
+def _make_url(op, params, raw_key):
+    """odcloud 요청 URL 생성.
+    raw_key=False : Decoding 키 → 전체를 urlencode
+    raw_key=True  : Encoding 키 → serviceKey는 그대로 붙이고 나머지만 encode"""
+    p = dict(params)
+    sk = p.pop("serviceKey")
+    if raw_key:
+        rest = urllib.parse.urlencode(p)
+        return "{}{}?serviceKey={}{}".format(API_BASE, op, sk, ("&" + rest if rest else ""))
+    p2 = {"serviceKey": sk}
+    p2.update(p)
+    return "{}{}?{}".format(API_BASE, op, urllib.parse.urlencode(p2))
 
 
-def _url_raw(service_key, page):
-    # 이미 URL 인코딩된 키(Encoding 키)를 그대로 붙이는 방식
-    return "{}?serviceKey={}&page={}&perPage={}".format(API_URL, service_key, page, PER_PAGE)
+def api_page(op, params, raw_key):
+    """단일 페이지 요청 → (status, payload dict or None)"""
+    status, body = _request(_make_url(op, params, raw_key))
+    try:
+        return status, json.loads(body)
+    except ValueError:
+        return status, None
 
 
 def fetch_all(service_key):
-    """API를 페이지 단위로 ꪨ두 받아 data 배열을 합쳐 반환.
-    Decoding 키(urlencode)와 Encoding 키(raw) 두 방식을 자동 시도한다."""
-    for label, build in (("encoded", _url_encoded), ("raw", _url_raw)):
-        status, body = _request(build(service_key, 1))
-        try:
-            payload = json.loads(body)
-        except ValueError:
-            print("[{}] JSON 파싱 실패 (HTTP {}): {}".format(label, status, body[:250]))
-            continue
-        data = payload.get("data") or []
+    """분양정보 전체를 받아 (rows, raw_key_flag)로 반환.
+    Decoding 키(encoded)와 Encoding 키(raw) 두 방식을 자동 시도한다."""
+    for raw_key in (False, True):
+        label = "raw" if raw_key else "encoded"
+        st, payload = api_page(
+            DETAIL_OP, {"serviceKey": service_key, "page": 1, "perPage": PER_PAGE}, raw_key
+        )
+        data = (payload or {}).get("data") or []
         if not data:
-            print("[{}] 데이터 0건 (HTTP {}). 응답요약: {}".format(label, status, body[:250]))
+            print("[{}] 데이터 0건 (HTTP {}).".format(label, st))
             continue
-        # 성공한 방식으로 전체 페이지 수집
         print("사용한 serviceKey 전달방식:", label)
         rows = list(data)
         if payload.get("currentCount", len(data)) >= PER_PAGE:
             for page in range(2, MAX_PAGES + 1):
-                _s, b = _request(build(service_key, page))
-                try:
-                    p = json.loads(b)
-                except ValueError:
-                    break
-                d = p.get("data") or []
+                _st, p2 = api_page(
+                    DETAIL_OP, {"serviceKey": service_key, "page": page, "perPage": PER_PAGE}, raw_key
+                )
+                d = (p2 or {}).get("data") or []
                 rows.extend(d)
-                if p.get("currentCount", len(d)) < PER_PAGE:
+                if not p2 or p2.get("currentCount", len(d)) < PER_PAGE:
                     break
-        return rows
-    return []
+        return rows, raw_key
+    return [], False
+
+
+def fetch_price_range(service_key, raw_key, house_manage_no, pblanc_no):
+    """해당 공고의 주택형별 분양최고금액(만원) 목록에서 (최저, 최고)를 반환. 없으면 None."""
+    if not house_manage_no or not pblanc_no:
+        return None
+    params = {
+        "serviceKey": service_key,
+        "page": 1,
+        "perPage": 100,
+        "cond[HOUSE_MANAGE_NO::EQ]": house_manage_no,
+        "cond[PBLANC_NO::EQ]": pblanc_no,
+    }
+    try:
+        _st, payload = api_page(MDL_OP, params, raw_key)
+    except Exception:
+        return None
+    amounts = []
+    for d in (payload or {}).get("data") or []:
+        # 안전장치: 키가 일치하는 행만
+        if str(d.get("HOUSE_MANAGE_NO")) != str(house_manage_no):
+            continue
+        if str(d.get("PBLANC_NO")) != str(pblanc_no):
+            continue
+        v = d.get("LTTOT_TOP_AMOUNT")
+        try:
+            iv = int(str(v).replace(",", "").strip())
+        except (ValueError, TypeError):
+            continue
+        if iv > 0:
+            amounts.append(iv)
+    if not amounts:
+        return None
+    return (min(amounts), max(amounts))
+
+
+def _eok(man):
+    """만원 단위 정수 → 'X.X억' 문자열"""
+    return "{:.1f}억".format(man / 10000.0)
+
+
+def fmt_price(rng):
+    """(최저,최고) 만원 → '3.9억 ~ 8.2억' / 단일값 / '-'"""
+    if not rng:
+        return "-"
+    lo, hi = rng
+    if lo == hi:
+        return _eok(lo)
+    return "{} ~ {}".format(_eok(lo), _eok(hi))
 
 
 def md(d):
@@ -133,7 +192,6 @@ def classify(item, today):
 def build_records(rows, today):
     recs = []
     for it in rows:
-        # APT만 (혹시 다른 유형이 섞여 오면 제외)
         secd = (it.get("HOUSE_SECD_NM") or "").strip()
         result = classify(it, today)
         if not result:
@@ -162,14 +220,26 @@ def build_records(rows, today):
             "period": "{}~{}".format(md(bgn), md(end)),
             "announce": md(ann),
             "units": units,
+            "price": "-",
             "link": link,
+            "_hmno": (it.get("HOUSE_MANAGE_NO") or "").strip(),
+            "_pno": (it.get("PBLANC_NO") or "").strip(),
             "_sort": (0 if status == "today" else 1 if status == "open" else 2, bgn),
         })
-    # 오늘마감 > 접수중 > 접수예정, 그 안에서는 접수시작일 순
     recs.sort(key=lambda r: r["_sort"])
     for r in recs:
         del r["_sort"]
     return recs
+
+
+def attach_prices(recs, service_key, raw_key):
+    """각 공고의 분양가 범위를 채운다(대상 공고 수만큼 추가 호출)."""
+    for r in recs:
+        rng = fetch_price_range(service_key, raw_key, r.get("_hmno"), r.get("_pno"))
+        r["price"] = fmt_price(rng)
+    for r in recs:
+        r.pop("_hmno", None)
+        r.pop("_pno", None)
 
 
 TEMPLATE = r"""<!DOCTYPE html>
@@ -224,6 +294,8 @@ TEMPLATE = r"""<!DOCTYPE html>
   .kv{display:flex;justify-content:space-between;font-size:14px;padding:5px 0;border-top:1px solid var(--line);}
   .kv .k{color:var(--gray-txt);}
   .kv .v{font-weight:700;}
+  .kv.price .k{color:var(--blue);}
+  .kv.price .v{color:var(--blue);}
   .card .open-more{margin-top:14px;color:var(--blue);font-weight:700;font-size:14px;text-align:right;}
   .empty{text-align:center;color:var(--gray-txt);padding:60px 0;font-size:15px;}
   .overlay{position:fixed;inset:0;background:rgba(31,42,82,.45);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;}
@@ -242,6 +314,8 @@ TEMPLATE = r"""<!DOCTYPE html>
   .m-kv{display:flex;justify-content:space-between;font-size:15px;padding:11px 0;border-top:1px solid var(--line);}
   .m-kv .k{color:var(--gray-txt);}
   .m-kv .v{font-weight:700;}
+  .m-kv.price .k{color:var(--blue);}
+  .m-kv.price .v{color:var(--blue);}
   .note{background:#fbfbe9;color:#8a7a2b;font-size:12.5px;line-height:1.5;border-radius:10px;padding:10px 13px;margin-top:14px;}
   .m-footer{border-top:1px solid var(--line);margin-top:14px;padding:16px 0 12px;text-align:right;}
   .m-link{color:var(--blue);font-weight:700;font-size:15px;text-decoration:none;}
@@ -280,7 +354,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 
   <footer>
     데이터 출처: 한국부동산원 청약홈 APT분양정보(공공데이터포털) · __GEN_DATE__ 자동 갱신.<br>
-    실제 청약 전 청약홈 입주자모집공고 원문에서 최종 확인하세요. © 청약노트 · 비공식 정보 정리
+    분양가는 주택형별 분양최고금액 기준의 범위입니다. 실제 청약 전 청약홈 입주자모집공고 원문에서 최종 확인하세요. © 청약노트 · 비공식 정보 정리
   </footer>
 
   <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
@@ -318,6 +392,7 @@ function render(){
       </div>
       <h3>${d.name}</h3>
       <div class="loc">${d.addr}</div>
+      <div class="kv price"><span class="k">분양가</span><span class="v">${d.price}</span></div>
       <div class="kv"><span class="k">청약접수</span><span class="v">${d.period}</span></div>
       <div class="kv"><span class="k">당첨자발표</span><span class="v">${d.announce}</span></div>
       <div class="kv"><span class="k">공급 세대</span><span class="v">${d.units}세대</span></div>
@@ -333,10 +408,11 @@ function openModal(i){
     <h2>${d.name}</h2>
     <p class="addr">${d.addr}</p>
     <div class="tags"><span class="tag tag-type">아파트</span><span class="tag tag-supply">${d.type}</span></div>
+    <div class="m-kv price"><span class="k">분양가</span><span class="v">${d.price}</span></div>
     <div class="m-kv"><span class="k">청약접수</span><span class="v">${d.period}</span></div>
     <div class="m-kv"><span class="k">당첨자발표</span><span class="v">${d.announce}</span></div>
     <div class="m-kv"><span class="k">공급 세대</span><span class="v">${d.units}세대</span></div>
-    <div class="note">주탙형별 공급금액·세대수 등 상세 내용은 청약홈 입주자모집공고 원문에서 확인하세요.</div>
+    <div class="note">분양가는 주택형별 분양최고금액 기준의 범위입니다. 주택형별 공급금액·세대수 등 상세 내용은 청약홈 입주자모집공고 원문에서 확인하세요.</div>
     <div class="m-footer"><a class="m-link" href="${d.link}" target="_blank" rel="noopener">청약홈에서 확인 →</a></div>`;
   document.getElementById("overlay").classList.add("on");
   document.body.style.overflow="hidden";
@@ -366,13 +442,17 @@ def main():
 
     today = today_kst()
     print("오늘(KST):", today)
-    rows = fetch_all(service_key)
+    rows, raw_key = fetch_all(service_key)
     print("API 총 수신 공고:", len(rows))
     recs = build_records(rows, today)
     print("대상(진행/예정) 공고:", len(recs))
     if not recs:
         print("WARNING: 대상 공고가 0건입니다. 기존 index.html을 유지합니다.", file=sys.stderr)
         sys.exit(0)
+
+    attach_prices(recs, service_key, raw_key)
+    priced = sum(1 for r in recs if r.get("price") not in (None, "-"))
+    print("분양가 확인 공고:", priced, "/", len(recs))
 
     gen_date = today.strftime("%Y.%m.%d")
     out = TEMPLATE.replace("__DATA__", json.dumps(recs, ensure_ascii=False))
