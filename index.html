@@ -50,6 +50,8 @@
   .kv{display:flex;justify-content:space-between;font-size:14px;padding:5px 0;border-top:1px solid var(--line);}
   .kv .k{color:var(--gray-txt);}
   .kv .v{font-weight:700;}
+  .kv.price .k{color:var(--blue);}
+  .kv.price .v{color:var(--blue);}
   .card .open-more{margin-top:14px;color:var(--blue);font-weight:700;font-size:14px;text-align:right;}
   .empty{text-align:center;color:var(--gray-txt);padding:60px 0;font-size:15px;}
   .overlay{position:fixed;inset:0;background:rgba(31,42,82,.45);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;}
@@ -68,6 +70,8 @@
   .m-kv{display:flex;justify-content:space-between;font-size:15px;padding:11px 0;border-top:1px solid var(--line);}
   .m-kv .k{color:var(--gray-txt);}
   .m-kv .v{font-weight:700;}
+  .m-kv.price .k{color:var(--blue);}
+  .m-kv.price .v{color:var(--blue);}
   .note{background:#fbfbe9;color:#8a7a2b;font-size:12.5px;line-height:1.5;border-radius:10px;padding:10px 13px;margin-top:14px;}
   .m-footer{border-top:1px solid var(--line);margin-top:14px;padding:16px 0 12px;text-align:right;}
   .m-link{color:var(--blue);font-weight:700;font-size:15px;text-decoration:none;}
@@ -89,7 +93,7 @@
   <div class="wrap">
     <div class="hero">
       <h1>아파트 청약 정보</h1>
-      <p>청약홈 APT분양정보(공공데이터포털) 기준 · 2026.08.03 갱신 · 접수 진행/예정 공고를 자동으로 정리합니다. 카드를 누르면 일정과 청약홈 공고 링크를 볼 수 있어요.</p>
+      <p>청약홈 APT분양정보(공공데이터포털) 기준 · 2026.08.04 갱신 · 접수 진행/예정 공고를 자동으로 정리합니다. 카드를 누르면 일정과 청약홈 공고 링크를 볼 수 있어요.</p>
     </div>
 
     <div class="filters" id="statusFilters">
@@ -105,14 +109,14 @@
   </div>
 
   <footer>
-    데이터 출처: 한국부동산원 청약홈 APT분양정보(공공데이터포털) · 2026.08.03 자동 갱신.<br>
-    실제 청약 전 청약홈 입주자모집공고 원문에서 최종 확인하세요. © 청약노트 · 비공식 정보 정리
+    데이터 출처: 한국부동산원 청약홈 APT분양정보(공공데이터포털) · 2026.08.04 자동 갱신.<br>
+    분양가는 주택형별 분양최고금액 기준의 범위입니다. 실제 청약 전 청약홈 입주자모집공고 원문에서 최종 확인하세요. © 청약노트 · 비공식 정보 정리
   </footer>
 
   <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
 
 <script>
-const DATA=[{"status": "open", "dday": "D-2", "name": "아산테크노밸리 더원 7차 (Ab4BL)", "region": "충남", "addr": "충청남도 아산시 둔포면 아산테크노밸리 Ab4BL (아산시 둔포면 석곡리 1818번지 일원)", "type": "APT", "period": "08.03~08.05", "announce": "08.11", "units": "622", "link": "https://아산테크노밸리더원7차.com"}, {"status": "open", "dday": "D-2", "name": "센트레빌 아스테리움 거제", "region": "경남", "addr": "경상남도 거제시 상동동 681-2번지 일원", "type": "APT", "period": "08.03~08.05", "announce": "08.11", "units": "1,307", "link": "https://센트레빌아스테리움거제.com"}, {"status": "open", "dday": "D-2", "name": "더샵 트리센트", "region": "부산", "addr": "부산광역시 남구 문현동 334번지 일원", "type": "APT", "period": "08.03~08.05", "announce": "08.11", "units": "156", "link": "https://www.더샵트리센트.kr"}, {"status": "open", "dday": "D-2", "name": "리쉐스302", "region": "강원", "addr": "강원특별자치도 강릉시 교동 156-35번지 일원", "type": "APT", "period": "08.03~08.05", "announce": "08.11", "units": "302", "link": "https://www.richesse302.com"}, {"status": "open", "dday": "내일 마감", "name": "수원당수지구 A5블록 신혼희망타운(공공분양) 추가 입주자모집", "region": "경기", "addr": "경기도 수원시 권선구 금곡동, 당수동 일원 수원당수 공공주택지구내 A5블록", "type": "신혼희망타운", "period": "08.03~08.04", "announce": "08.13", "units": "142", "link": "https://apply.lh.or.kr/"}, {"status": "soon", "dday": "08.10 접수시작", "name": "세종 우미 린 센터파크(행정중심복합도시 5-2생활권 S1블록, 글미마을 9단지)", "region": "세종", "addr": "세종특별자치시 다솜동 5204-1번지 일원(행정중심복합도시 5-2생활권 S1BL)", "type": "APT", "period": "08.10~08.12", "announce": "08.19", "units": "676", "link": "https://sj3.lynn.co.kr/"}, {"status": "soon", "dday": "08.10 접수시작", "name": "한강 푸르지오 리버프론트", "region": "경기", "addr": "경기도 김포시 고촌읍 향산리 588-45번지 일원", "type": "APT", "period": "08.10~08.12", "announce": "08.20", "units": "2,432", "link": "https://prugio-riverfront.com/"}, {"status": "soon", "dday": "08.10 접수시작", "name": "두산위브더제니스 대연", "region": "부산", "addr": "부산광역시 남구 대연동 1756-9번지", "type": "APT", "period": "08.10~08.12", "announce": "08.19", "units": "176", "link": "http://www.두산위브더제니스대연.com"}];
+const DATA=[{"status": "today", "dday": "오늘 마감", "name": "수원당수지구 A5블록 신혼희망타운(공공분양) 추가 입주자모집", "region": "경기", "addr": "경기도 수원시 권선구 금곡동, 당수동 일원 수원당수 공공주택지구내 A5블록", "type": "신혼희망타운", "period": "08.03~08.04", "announce": "08.13", "units": "142", "price": "3.5억 ~ 4.1억", "link": "https://apply.lh.or.kr/"}, {"status": "open", "dday": "내일 마감", "name": "아산테크노밸리 더원 7차 (Ab4BL)", "region": "충남", "addr": "충청남도 아산시 둔포면 아산테크노밸리 Ab4BL (아산시 둔포면 석곡리 1818번지 일원)", "type": "APT", "period": "08.03~08.05", "announce": "08.11", "units": "622", "price": "4.0억 ~ 4.3억", "link": "https://아산테크노밸리더원7차.com"}, {"status": "open", "dday": "내일 마감", "name": "센트레빌 아스테리움 거제", "region": "경남", "addr": "경상남도 거제시 상동동 681-2번지 일원", "type": "APT", "period": "08.03~08.05", "announce": "08.11", "units": "1,307", "price": "5.3억 ~ 7.1억", "link": "https://센트레빌아스테리움거제.com"}, {"status": "open", "dday": "내일 마감", "name": "더샵 트리센트", "region": "부산", "addr": "부산광역시 남구 문현동 334번지 일원", "type": "APT", "period": "08.03~08.05", "announce": "08.11", "units": "156", "price": "6.3억 ~ 8.5억", "link": "https://www.더샵트리센트.kr"}, {"status": "open", "dday": "내일 마감", "name": "리쉐스302", "region": "강원", "addr": "강원특별자치도 강릉시 교동 156-35번지 일원", "type": "APT", "period": "08.03~08.05", "announce": "08.11", "units": "302", "price": "7.8억 ~ 17.3억", "link": "https://www.richesse302.com"}, {"status": "soon", "dday": "08.10 접수시작", "name": "세종 우미 린 센터파크(행정중심복합도시 5-2생활권 S1블록, 글미마을 9단지)", "region": "세종", "addr": "세종특별자치시 다솜동 5204-1번지 일원(행정중심복합도시 5-2생활권 S1BL)", "type": "APT", "period": "08.10~08.12", "announce": "08.19", "units": "676", "price": "3.0억 ~ 6.5억", "link": "https://sj3.lynn.co.kr/"}, {"status": "soon", "dday": "08.10 접수시작", "name": "한강 푸르지오 리버프론트", "region": "경기", "addr": "경기도 김포시 고촌읍 향산리 588-45번지 일원", "type": "APT", "period": "08.10~08.12", "announce": "08.20", "units": "2,432", "price": "7.4억 ~ 30.0억", "link": "https://prugio-riverfront.com/"}, {"status": "soon", "dday": "08.10 접수시작", "name": "두산위브더제니스 대연", "region": "부산", "addr": "부산광역시 남구 대연동 1756-9번지", "type": "APT", "period": "08.10~08.12", "announce": "08.19", "units": "176", "price": "7.6억 ~ 10.9억", "link": "http://www.두산위브더제니스대연.com"}];
 const LABEL={open:"접수중",today:"오늘 마감",soon:"접수예정"};
 const PCLS={open:"pill-open",today:"pill-today",soon:"pill-soon"};
 
@@ -144,6 +148,7 @@ function render(){
       </div>
       <h3>${d.name}</h3>
       <div class="loc">${d.addr}</div>
+      <div class="kv price"><span class="k">분양가</span><span class="v">${d.price}</span></div>
       <div class="kv"><span class="k">청약접수</span><span class="v">${d.period}</span></div>
       <div class="kv"><span class="k">당첨자발표</span><span class="v">${d.announce}</span></div>
       <div class="kv"><span class="k">공급 세대</span><span class="v">${d.units}세대</span></div>
@@ -159,10 +164,11 @@ function openModal(i){
     <h2>${d.name}</h2>
     <p class="addr">${d.addr}</p>
     <div class="tags"><span class="tag tag-type">아파트</span><span class="tag tag-supply">${d.type}</span></div>
+    <div class="m-kv price"><span class="k">분양가</span><span class="v">${d.price}</span></div>
     <div class="m-kv"><span class="k">청약접수</span><span class="v">${d.period}</span></div>
     <div class="m-kv"><span class="k">당첨자발표</span><span class="v">${d.announce}</span></div>
     <div class="m-kv"><span class="k">공급 세대</span><span class="v">${d.units}세대</span></div>
-    <div class="note">주탙형별 공급금액·세대수 등 상세 내용은 청약홈 입주자모집공고 원문에서 확인하세요.</div>
+    <div class="note">분양가는 주택형별 분양최고금액 기준의 범위입니다. 주택형별 공급금액·세대수 등 상세 내용은 청약홈 입주자모집공고 원문에서 확인하세요.</div>
     <div class="m-footer"><a class="m-link" href="${d.link}" target="_blank" rel="noopener">청약홈에서 확인 →</a></div>`;
   document.getElementById("overlay").classList.add("on");
   document.body.style.overflow="hidden";
