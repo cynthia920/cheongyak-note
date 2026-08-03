@@ -89,7 +89,7 @@
   <div class="wrap">
     <div class="hero">
       <h1>아파트 청약 정보</h1>
-      <p>청약홈 APT분양정보(공공데이터포털) 기준 · 2026.07.31 갱신 · 접수 진행/예정 공고를 자동으로 정리합니다. 카드를 누르면 일정과 청약홈 공고 링크를 볼 수 있어요.</p>
+      <p>청약홈 APT분양정보(공공데이터포털) 기준 · 2026.08.03 갱신 · 접수 진행/예정 공고를 자동으로 정리합니다. 카드를 누르면 일정과 청약홈 공고 링크를 볼 수 있어요.</p>
     </div>
 
     <div class="filters" id="statusFilters">
@@ -105,14 +105,14 @@
   </div>
 
   <footer>
-    데이터 출처: 한국부동산원 청약홈 APT분양정보(공공데이터포털) · 2026.07.31 자동 갱신.<br>
+    데이터 출처: 한국부동산원 청약홈 APT분양정보(공공데이터포털) · 2026.08.03 자동 갱신.<br>
     실제 청약 전 청약홈 입주자모집공고 원문에서 최종 확인하세요. © 청약노트 · 비공식 정보 정리
   </footer>
 
   <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
 
 <script>
-const DATA=[{"status": "soon", "dday": "08.03 접수시작", "name": "아산테크노밸리 더원 7차 (Ab4BL)", "region": "충남", "addr": "충청남도 아산시 둔포면 아산테크노밸리 Ab4BL (아산시 둔포면 석곡리 1818번지 일원)", "type": "APT", "period": "08.03~08.05", "announce": "08.11", "units": "622", "link": "https://아산테크노밸리더원7차.com"}, {"status": "soon", "dday": "08.03 접수시작", "name": "센트레빌 아스테리움 거제", "region": "경남", "addr": "경상남도 거제시 상동동 681-2번지 일원", "type": "APT", "period": "08.03~08.05", "announce": "08.11", "units": "1,307", "link": "https://센트레빌아스테리움거제.com"}, {"status": "soon", "dday": "08.03 접수시작", "name": "더샵 트리센트", "region": "부산", "addr": "부산광역시 남구 문현동 334번지 일원", "type": "APT", "period": "08.03~08.05", "announce": "08.11", "units": "156", "link": "https://www.더샵트리센트.kr"}, {"status": "soon", "dday": "08.03 접수시작", "name": "리쉐스302", "region": "강원", "addr": "강원특별자치도 강릉시 교동 156-35번지 일원", "type": "APT", "period": "08.03~08.05", "announce": "08.11", "units": "302", "link": "https://www.richesse302.com"}, {"status": "soon", "dday": "08.03 접수시작", "name": "수원당수지구 A5블록 신혼희망타운(공공분양) 추가 입주자모집", "region": "경기", "addr": "경기도 수원시 권선구 금곡동, 당수동 일원 수원당수 공공주택지구내 A5블록", "type": "신혼희망타운", "period": "08.03~08.04", "announce": "08.13", "units": "142", "link": "https://apply.lh.or.kr/"}, {"status": "soon", "dday": "08.10 접수시작", "name": "한강 푸르지오 리버프론트", "region": "경기", "addr": "경기도 김포시 고촌읍 향산리 588-45번지 일원", "type": "APT", "period": "08.10~08.12", "announce": "08.20", "units": "2,432", "link": "https://prugio-riverfront.com/"}, {"status": "soon", "dday": "08.10 접수시작", "name": "두산위브더제니스 대연", "region": "부산", "addr": "부산광역시 남구 대연동 1756-9번지", "type": "APT", "period": "08.10~08.12", "announce": "08.19", "units": "176", "link": "http://www.두산위브더제니스대연.com"}];
+const DATA=[{"status": "open", "dday": "D-2", "name": "아산테크노밸리 더원 7차 (Ab4BL)", "region": "충남", "addr": "충청남도 아산시 둔포면 아산테크노밸리 Ab4BL (아산시 둔포면 석곡리 1818번지 일원)", "type": "APT", "period": "08.03~08.05", "announce": "08.11", "units": "622", "link": "https://아산테크노밸리더원7차.com"}, {"status": "open", "dday": "D-2", "name": "센트레빌 아스테리움 거제", "region": "경남", "addr": "경상남도 거제시 상동동 681-2번지 일원", "type": "APT", "period": "08.03~08.05", "announce": "08.11", "units": "1,307", "link": "https://센트레빌아스테리움거제.com"}, {"status": "open", "dday": "D-2", "name": "더샵 트리센트", "region": "부산", "addr": "부산광역시 남구 문현동 334번지 일원", "type": "APT", "period": "08.03~08.05", "announce": "08.11", "units": "156", "link": "https://www.더샵트리센트.kr"}, {"status": "open", "dday": "D-2", "name": "리쉐스302", "region": "강원", "addr": "강원특별자치도 강릉시 교동 156-35번지 일원", "type": "APT", "period": "08.03~08.05", "announce": "08.11", "units": "302", "link": "https://www.richesse302.com"}, {"status": "open", "dday": "내일 마감", "name": "수원당수지구 A5블록 신혼희망타운(공공분양) 추가 입주자모집", "region": "경기", "addr": "경기도 수원시 권선구 금곡동, 당수동 일원 수원당수 공공주택지구내 A5블록", "type": "신혼희망타운", "period": "08.03~08.04", "announce": "08.13", "units": "142", "link": "https://apply.lh.or.kr/"}, {"status": "soon", "dday": "08.10 접수시작", "name": "세종 우미 린 센터파크(행정중심복합도시 5-2생활권 S1블록, 글미마을 9단지)", "region": "세종", "addr": "세종특별자치시 다솜동 5204-1번지 일원(행정중심복합도시 5-2생활권 S1BL)", "type": "APT", "period": "08.10~08.12", "announce": "08.19", "units": "676", "link": "https://sj3.lynn.co.kr/"}, {"status": "soon", "dday": "08.10 접수시작", "name": "한강 푸르지오 리버프론트", "region": "경기", "addr": "경기도 김포시 고촌읍 향산리 588-45번지 일원", "type": "APT", "period": "08.10~08.12", "announce": "08.20", "units": "2,432", "link": "https://prugio-riverfront.com/"}, {"status": "soon", "dday": "08.10 접수시작", "name": "두산위브더제니스 대연", "region": "부산", "addr": "부산광역시 남구 대연동 1756-9번지", "type": "APT", "period": "08.10~08.12", "announce": "08.19", "units": "176", "link": "http://www.두산위브더제니스대연.com"}];
 const LABEL={open:"접수중",today:"오늘 마감",soon:"접수예정"};
 const PCLS={open:"pill-open",today:"pill-today",soon:"pill-soon"};
 
